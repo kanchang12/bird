@@ -4,15 +4,16 @@ import cv2
 import numpy as np
 import base64
 from flask_cors import CORS
+import os
 
 app = Flask(__name__)
 CORS(app)
 
-ROBOFLOW_API_KEY = "282K9KJQbOG4dpF69t6D"
+roboflow_api_key = os.getenv('ROBOFLOW_API_KEY')
 ROBOFLOW_WORKSPACE = "bird-v2"
 ROBOFLOW_VERSION = 2
 
-rf = Roboflow(api_key=ROBOFLOW_API_KEY)
+rf = Roboflow(api_key=roboflow_api_key)
 project = rf.workspace().project(ROBOFLOW_WORKSPACE)
 model = project.version(ROBOFLOW_VERSION).model
 
