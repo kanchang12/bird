@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bird Identification</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        #videoContainer {
+            width: 300px;
+            height: auto;
+        }
+        #videoPlayer {
+            width: 100%;
+            height: auto;
+        }
+        #birdInfo {
+            margin-left: 20px;
+            width: 70%;
+        }
+        #birdInfo img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="videoContainer">
+        <input type="text" id="videoUrl" placeholder="Enter video URL">
+        <button onclick="loadAndIdentifyBird()">Load Video and Identify Bird</button>
+        <iframe id="videoPlayer" width="420" height="315" src="" frameborder="0" allowfullscreen></iframe>
+    </div>
+    <div id="birdInfo">
+        <h2>Bird Information</h2>
+        <p id="result"></p>
+        <img id="birdImage" src="" alt="Bird Image">
+    </div>
+
+    <script>
+        let videoElement;
+
+        function loadAndIdentifyBird() {
+            const videoUrl = document.getElementById('videoUrl').value;
+            const videoId = videoUrl.split('v=')[1].split('&')[0];
+            const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+            document.getElementById('videoPlayer').src = embedUrl;
+
+            videoElement = document.createElement('video');
+            videoElement.src = `https://www.youtube.com/watch?v=${videoId}`;
+            videoElement.addEventListener('loadedmetadata', () => {
+                videoElement.play();
+                identifyBird();
+            });
+        }
+
+        function identifyBird() {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            captureFrame(videoElement, canvas, context);
+        }
+
+        function captureFrame(video, canvas, context) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const imageUrl = canvas.toDataURL('image/jpeg');
+
+            fetch('/identify_bird', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ image_url: imageUrl })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.bird_name) {
+                    document.getElementById('result').innerText = "Bird identified: " + data.bird_name;
+                } else if (data.error) {
+                    document.getElementById('result').innerText = "Error: " + data.error;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('result').innerText = "An error occurred.";
+            });
+        }
+    </script>
+
+    <script>
+        window.addEventListener('error', function (e) {
+            if (e.message.includes('googleads.g.doubleclick.net')) {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
