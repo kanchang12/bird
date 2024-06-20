@@ -1,7 +1,7 @@
 Flask
 flask-cors
 roboflow
-opencv-python
+
 numpy
 gunicorn
-opencv-python-headless
+
