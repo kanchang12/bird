@@ -4,3 +4,4 @@ roboflow
 opencv-python
 numpy
 gunicorn
+opencv-python-headless
