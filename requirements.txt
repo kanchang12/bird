@@ -1,0 +1,6 @@
+Flask
+flask-cors
+roboflow
+opencv-python
+numpy
+gunicorn
