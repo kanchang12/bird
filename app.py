@@ -1,9 +1,13 @@
 from flask import Flask, request, jsonify, render_template
 from roboflow import Roboflow
 import base64
+from flask_cors import CORS
 import os
 
 app = Flask(__name__)
+CORS(app) 
+
+
 roboflow_api_key = "282K9KJQbOG4dpF69t6D"
 ROBOFLOW_WORKSPACE = "bird-v2"
 ROBOFLOW_VERSION = 2
