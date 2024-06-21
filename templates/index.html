@@ -80,13 +80,12 @@
             log(`Player error: ${event.data}`);
         }
 
-let num = -1;
+
 
 function identifyBird(videoId) {
     log('Starting bird identification...');
-    num++;
-    if (num > 3) num = 0; // Cycle through 0, 1, 2, 3
-    const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/${num}.jpg?t=${Date.now()}`;
+
+    const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/0.jpg`;
     log(`Thumbnail URL: ${thumbnailUrl}`);
     
 
@@ -149,6 +148,7 @@ function identifyBird(videoId) {
                     log('Error fetching thumbnail: ' + error.message);
                 });
         }
+        const thumbnailUrl = ``;
     </script>
 </body>
 </html>
