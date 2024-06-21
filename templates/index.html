@@ -14,7 +14,7 @@
             padding: 20px;
         }
         #videoContainer {
-            width: 300px;
+            width: 420px;
             height: auto;
         }
         #player {
@@ -36,6 +36,7 @@
         <input type="text" id="videoUrl" placeholder="Enter video URL">
         <button onclick="loadVideoAndIdentify()">Load Video and Start Identification</button>
         <div id="player"></div>
+        <canvas id="canvas" style="display:none;"></canvas>
     </div>
     <div id="birdInfo">
         <h2>Bird Information</h2>
@@ -46,7 +47,6 @@
     <script>
         let player;
         let identificationInterval;
-        const API_KEY = 'YOUR_YOUTUBE_API_KEY'; // Replace with your actual YouTube API key
 
         function loadVideoAndIdentify() {
             const videoUrl = document.getElementById('videoUrl').value;
@@ -59,7 +59,6 @@
                     'onReady': onPlayerReady
                 }
             });
-            getVideoDetails(videoId);
         }
 
         function onPlayerReady(event) {
@@ -68,32 +67,28 @@
             identificationInterval = setInterval(identifyBird, 30000);
         }
 
-        function getVideoDetails(videoId) {
-            fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${API_KEY}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.items && data.items.length > 0) {
-                        const thumbnailUrl = data.items[0].snippet.thumbnails.high.url;
-                        identifyBird(thumbnailUrl);
-                    }
-                })
-                .catch(error => console.error('Error fetching video details:', error));
-        }
-
-        function identifyBird(imageUrl) {
-            if (!imageUrl) {
-                console.log("No image URL available");
+        function identifyBird() {
+            if (!player) {
+                console.log("Player not ready");
                 return;
             }
             
-            console.log('Using image URL:', imageUrl);
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+            const playerElement = player.getIframe();
+            
+            canvas.width = playerElement.width;
+            canvas.height = playerElement.height;
+            
+            context.drawImage(playerElement, 0, 0, canvas.width, canvas.height);
+            const imageData = canvas.toDataURL('image/jpeg');
             
             fetch('https://burning-bernie-webpagegem-ace9fd7e.koyeb.app/identify_bird', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ image_url: imageUrl })
+                body: JSON.stringify({ image_url: imageData })
             })
             .then(response => {
                 console.log('Received response from server:', response);
@@ -106,7 +101,7 @@
                 console.log('Parsed response data:', data);
                 if (data.bird_name) {
                     document.getElementById('result').innerText = "Bird identified: " + data.bird_name;
-                    document.getElementById('birdImage').src = imageUrl;
+                    document.getElementById('birdImage').src = imageData;
                 } else if (data.error) {
                     document.getElementById('result').innerText = "Error: " + data.error;
                 }
