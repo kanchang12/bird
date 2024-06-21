@@ -8,13 +8,12 @@
         body {
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: flex-start;
             padding: 20px;
         }
         #videoContainer {
             width: 420px;
             margin-bottom: 20px;
-            align-self: flex-start; /* Align to the top left corner */
         }
         #player {
             width: 100%;
@@ -47,9 +46,6 @@
             font-weight: bold;
             margin-top: 5px;
         }
-        #log {
-            display: none; /* Hide the log output */
-        }
     </style>
 </head>
 <body>
@@ -64,9 +60,9 @@
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
         let player;
+        let identificationInterval;
 
         function loadVideoAndIdentify() {
-            clearBirdList(); // Clear previous bird items
             const videoUrl = document.getElementById('videoUrl').value;
             const videoId = videoUrl.split('v=')[1].split('&')[0];
             player = new YT.Player('player', {
@@ -82,6 +78,7 @@
 
         function onPlayerReady(event) {
             identifyBird(player.getVideoData().video_id);
+            identificationInterval = setInterval(() => identifyBird(player.getVideoData().video_id), 30000);
         }
 
         function onPlayerError(event) {
@@ -152,11 +149,6 @@
 
             birdItem.appendChild(birdInfo);
             birdList.appendChild(birdItem);
-        }
-
-        function clearBirdList() {
-            const birdList = document.getElementById('birdList');
-            birdList.innerHTML = ''; // Clear all children
         }
     </script>
 </body>
