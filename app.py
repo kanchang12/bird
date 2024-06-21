@@ -27,7 +27,7 @@ def index():
     response = make_response(render_template('index.html'))
     return add_permissions_policy_headers(response)
 
-@app.route('/identify_bird', methods=['POST'])
+@app.route('/identify_bird', methods=['GET', 'POST'])
 def identify_bird():
     print("Received request to /identify_bird")
     try:
