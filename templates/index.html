@@ -7,30 +7,30 @@
     <style>
         body {
             display: flex;
-            justify-content: flex-start; /* Align elements to the left */
-            align-items: flex-start; /* Align elements to the top */
+            justify-content: flex-start;
+            align-items: flex-start;
             padding: 20px;
         }
         #videoContainer {
             width: 420px;
-            margin-right: 20px; /* Add margin for spacing */
+            margin-right: 20px;
         }
         #player {
             width: 100%;
             height: auto;
         }
         #birdInfo {
-            width: 300px; /* Adjust width for smaller size */
-            margin-top: 20px; /* Add margin for spacing */
+            width: 300px;
+            margin-top: 20px;
         }
         #birdImage {
             max-width: 100%;
-            max-height: 200px; /* Adjust maximum height */
+            max-height: 200px;
             object-fit: contain;
-            margin-top: 10px; /* Add margin for spacing */
+            margin-top: 10px;
         }
         #birdName {
-            margin-top: 10px; /* Add margin for spacing */
+            margin-top: 10px;
         }
         #log {
             width: 100%;
@@ -117,7 +117,7 @@
                 document.getElementById('birdImage').src = resizedImageUrl;
                 
                 log('Sending image to server for identification...');
-                fetch('/identify_bird', {
+                fetch('https://burning-bernie-webpagegem-ace9fd7e.koyeb.app/identify_bird', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
