@@ -5,12 +5,13 @@ import numpy as np
 import base64
 from flask_cors import CORS
 import os
-import requests
+from PIL import Image
+import io
 
 app = Flask(__name__)
 CORS(app)
 
-roboflow_api_key = "282K9KJQbOG4dpF69t6D"
+roboflow_api_key = os.getenv('ROBOFLOW_API_KEY')
 ROBOFLOW_WORKSPACE = "bird-v2"
 ROBOFLOW_VERSION = 2
 
@@ -28,7 +29,6 @@ def index():
     return add_permissions_policy_headers(response)
 
 @app.route('/identify_bird', methods=['GET', 'POST'])
-
 def identify_bird():
     print("Received request to /identify_bird")
     try:
@@ -42,7 +42,7 @@ def identify_bird():
 
         image = Image.open(io.BytesIO(base64.b64decode(image_data)))
         print(f"Image opened. Size: {image.size}")
-        
+
         # Convert PIL Image to OpenCV format
         opencv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
         print(f"Converted to OpenCV image. Shape: {opencv_image.shape}")
