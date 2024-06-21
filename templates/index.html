@@ -17,7 +17,7 @@
             width: 300px;
             height: auto;
         }
-        #videoPlayer {
+        #player {
             width: 100%;
             height: auto;
         }
@@ -34,8 +34,7 @@
 <body>
     <div id="videoContainer">
         <input type="text" id="videoUrl" placeholder="Enter video URL">
-        <button onclick="loadVideo()">Load Video</button>
-        <button onclick="identifyBird()">Identify Bird</button>
+        <button onclick="loadVideoAndIdentify()">Load Video and Start Identification</button>
         <div id="player"></div>
     </div>
     <div id="birdInfo">
@@ -46,7 +45,9 @@
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
         let player;
-        function loadVideo() {
+        let identificationInterval;
+
+        function loadVideoAndIdentify() {
             const videoUrl = document.getElementById('videoUrl').value;
             const videoId = videoUrl.split('v=')[1].split('&')[0];
             player = new YT.Player('player', {
@@ -61,52 +62,60 @@
 
         function onPlayerReady(event) {
             console.log("Player is ready");
+            // Start identifying birds every 30 seconds
+            identificationInterval = setInterval(identifyBird, 30000);
         }
 
         function identifyBird() {
             if (!player) {
-                alert("Please load a video first");
+                console.log("Player not ready");
                 return;
             }
             
+            // Capture the current frame
             const canvas = document.createElement('canvas');
             canvas.width = 420;
             canvas.height = 315;
             const context = canvas.getContext('2d');
             
-            const playerElement = player.getIframe();
-            context.drawImage(playerElement, 0, 0, canvas.width, canvas.height);
+            // Create an image from the current video frame
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.src = `https://img.youtube.com/vi/${player.getVideoData().video_id}/0.jpg`;
             
-            const imageUrl = canvas.toDataURL('image/jpeg');
-            console.log('Captured image URL:', imageUrl.substring(0, 100) + '...');
-            
-            fetch('https://burning-bernie-webpagegem-ace9fd7e.koyeb.app/identify_bird', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ image_url: imageUrl })
-            })
-            .then(response => {
-                console.log('Received response from server:', response);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('Parsed response data:', data);
-                if (data.bird_name) {
-                    document.getElementById('result').innerText = "Bird identified: " + data.bird_name;
-                    document.getElementById('birdImage').src = imageUrl;
-                } else if (data.error) {
-                    document.getElementById('result').innerText = "Error: " + data.error;
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                document.getElementById('result').innerText = "An error occurred: " + error.message;
-            });
+            img.onload = function() {
+                context.drawImage(img, 0, 0, canvas.width, canvas.height);
+                const imageUrl = canvas.toDataURL('image/jpeg');
+                console.log('Captured image URL:', imageUrl.substring(0, 100) + '...');
+                
+                fetch('https://burning-bernie-webpagegem-ace9fd7e.koyeb.app/identify_bird', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ image_url: imageUrl })
+                })
+                .then(response => {
+                    console.log('Received response from server:', response);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Parsed response data:', data);
+                    if (data.bird_name) {
+                        document.getElementById('result').innerText = "Bird identified: " + data.bird_name;
+                        document.getElementById('birdImage').src = imageUrl;
+                    } else if (data.error) {
+                        document.getElementById('result').innerText = "Error: " + data.error;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('result').innerText = "An error occurred: " + error.message;
+                });
+            };
         }
     </script>
 </body>
