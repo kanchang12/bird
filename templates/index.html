@@ -81,6 +81,7 @@
         }
 
 let num = -1;
+let prevNum = -1;
 
 function identifyBird(videoId) {
     log('Starting bird identification...');
@@ -88,67 +89,75 @@ function identifyBird(videoId) {
     if (num > 3) num = 0; // Cycle through 0, 1, 2, 3
     const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/${num}.jpg?t=${Date.now()}`;
     log(`Thumbnail URL: ${thumbnailUrl}`);
-    
 
-            // Use proxy to fetch the image
-            fetch(`/proxy_thumbnail?url=${encodeURIComponent(thumbnailUrl)}`)
+    if (prevNum !== -1) {
+        // Replace previous image with placeholder before deleting
+        const placeholderUrl = `path/to/placeholder.jpg`;
+        document.getElementById(`birdImage${prevNum}`).src = placeholderUrl;
+    }
+
+    // Create new image element
+    const img = document.createElement('img');
+    img.id = `birdImage${num}`;
+    img.src = thumbnailUrl;
+    img.alt = "Bird Image";
+
+    // Append new image to the birdInfo div
+    document.getElementById('birdInfo').appendChild(img);
+
+    // Update previous number
+    prevNum = num;
+
+    // Send image to server for identification
+    fetch(`/proxy_thumbnail?url=${encodeURIComponent(thumbnailUrl)}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            const reader = new FileReader();
+            reader.onload = function () {
+                const base64data = reader.result;
+
+                log('Sending image to server for identification...');
+                fetch('/identify_bird', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ image_url: base64data })
+                })
                 .then(response => {
+                    log(`Server response status: ${response.status}`);
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                    return response.blob();
+                    return response.json();
                 })
-                .then(blob => {
-                    const reader = new FileReader();
-                    reader.onload = function () {
-                        const base64data = reader.result;
-
-                        log('Sending image to server for identification...');
-                        fetch('/identify_bird', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ image_url: base64data })
-                        })
-                        .then(response => {
-                            log(`Server response status: ${response.status}`);
-                            if (!response.ok) {
-                                throw new Error(`HTTP error! status: ${response.status}`);
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            log(`Server response data: ${JSON.stringify(data)}`);
-                            if (data.bird_name) {
-                                const birdList = document.getElementById('birdList');
-                                const birdEntry = document.createElement('div');
-                                birdEntry.className = 'birdEntry';
-
-                                const birdImage = document.createElement('img');
-                                birdImage.src = base64data;
-                                birdImage.className = 'birdImage';
-
-                                const birdName = document.createElement('span');
-                                birdName.textContent = data.bird_name;
-
-                                birdEntry.appendChild(birdImage);
-                                birdEntry.appendChild(birdName);
-                                birdList.appendChild(birdEntry);
-                            } else if (data.error) {
-                                log('Error: ' + data.error);
-                            }
-                        })
-                        .catch(error => {
-                            log('Error: ' + error.message);
-                        });
-                    };
-                    reader.readAsDataURL(blob);
+                .then(data => {
+                    log(`Server response data: ${JSON.stringify(data)}`);
+                    if (data.bird_name) {
+                        document.getElementById(`birdImage${num}`).alt = data.bird_name;
+                        const birdNameDiv = document.createElement('div');
+                        birdNameDiv.innerText = data.bird_name;
+                        document.getElementById('birdInfo').appendChild(birdNameDiv);
+                    } else if (data.error) {
+                        log("Error: " + data.error);
+                    }
                 })
                 .catch(error => {
-                    log('Error fetching thumbnail: ' + error.message);
+                    log("Error: " + error.message);
                 });
-        }
+            };
+            reader.readAsDataURL(blob);
+        })
+        .catch(error => {
+            log(`Error fetching thumbnail: ${error.message}`);
+        });
+}
+
     </script>
 </body>
 </html>
