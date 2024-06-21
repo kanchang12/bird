@@ -69,29 +69,33 @@
                 return;
             }
             
-            // Capture the current frame
             const canvas = document.createElement('canvas');
             canvas.width = 420;
             canvas.height = 315;
             const context = canvas.getContext('2d');
             
-            // Draw the current video frame to the canvas
             const playerElement = player.getIframe();
             context.drawImage(playerElement, 0, 0, canvas.width, canvas.height);
             
             const imageUrl = canvas.toDataURL('image/jpeg');
-            console.log('Captured image URL:', imageUrl);
+            console.log('Captured image URL:', imageUrl.substring(0, 100) + '...');
             
-            fetch('/identify_bird', {
+            fetch('https://burning-bernie-webpagegem-ace9fd7e.koyeb.app/identify_bird', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ image_url: imageUrl })
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Received response from server:', response);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
-                console.log('Response from server:', data);
+                console.log('Parsed response data:', data);
                 if (data.bird_name) {
                     document.getElementById('result').innerText = "Bird identified: " + data.bird_name;
                     document.getElementById('birdImage').src = imageUrl;
@@ -101,7 +105,7 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                document.getElementById('result').innerText = "An error occurred.";
+                document.getElementById('result').innerText = "An error occurred: " + error.message;
             });
         }
     </script>
