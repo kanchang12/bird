@@ -70,77 +70,84 @@
             });
         }
 
-        function onPlayerReady(event) {
-            log('Player is ready');
-            setInterval(identifyAndSendScreenshot, 5000); // Capture and send screenshot every 5 seconds
-        }
+       function onPlayerReady(event) {
+    log('Player is ready');
+    event.target.playVideo(); // Start playing the video
+    setInterval(identifyAndSendScreenshot, 5000);
+}
 
         function onPlayerError(event) {
             log(`Player error: ${event.data}`);
         }
 
         function identifyAndSendScreenshot() {
-            log('Capturing screenshot and sending to server...');
-            
-            // Get the current video frame
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = player.getIframe().width;
-            canvas.height = player.getIframe().height;
-            ctx.drawImage(player.getIframe(), 0, 0, canvas.width, canvas.height);
+    log('Capturing screenshot and sending to server...');
+    
+    // Get the video element
+    const video = player.getIframe();
+    
+    // Create a canvas element
+    const canvas = document.createElement('canvas');
+    canvas.width = video.width;
+    canvas.height = video.height;
+    
+    // Draw the current video frame to the canvas
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            canvas.toBlob(blob => {
-                const reader = new FileReader();
-                reader.onload = function () {
-                    const base64data = reader.result;
+    // Convert the canvas to a blob
+    canvas.toBlob(blob => {
+        const reader = new FileReader();
+        reader.onload = function () {
+            const base64data = reader.result;
 
-                    fetch('/identify_bird', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ 
-                            image_url: base64data  // Sending base64 encoded image data
-                        })
-                    })
-                    .then(response => {
-                        log(`Server response status: ${response.status}`);
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        log(`Server response data: ${JSON.stringify(data)}`);
-                        if (data.bird_name) {
-                            const birdList = document.getElementById('birdList');
-                            const birdEntry = document.createElement('div');
-                            birdEntry.className = 'birdEntry';
+            fetch('/identify_bird', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    image_url: base64data
+                })
+            })
+            .then(response => {
+                log(`Server response status: ${response.status}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                log(`Server response data: ${JSON.stringify(data)}`);
+                if (data.bird_name) {
+                    const birdList = document.getElementById('birdList');
+                    const birdEntry = document.createElement('div');
+                    birdEntry.className = 'birdEntry';
 
-                            const birdImage = document.createElement('img');
-                            birdImage.src = base64data;
-                            birdImage.className = 'birdImage';
+                    const birdImage = document.createElement('img');
+                    birdImage.src = base64data;
+                    birdImage.className = 'birdImage';
 
-                            const birdName = document.createElement('span');
-                            birdName.textContent = data.bird_name;
+                    const birdName = document.createElement('span');
+                    birdName.textContent = data.bird_name;
 
-                            birdEntry.appendChild(birdImage);
-                            birdEntry.appendChild(birdName);
-                            birdList.appendChild(birdEntry);
-                        } else if (data.error) {
-                            log('Error: ' + data.error);
-                        }
-                    })
-                    .catch(error => {
-                        log('Error: ' + error.message);
-                    });
-                };
-                reader.readAsDataURL(blob);
-            }, 'image/jpeg');
+                    birdEntry.appendChild(birdImage);
+                    birdEntry.appendChild(birdName);
+                    birdList.appendChild(birdEntry);
+                } else if (data.error) {
+                    log('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                log('Error: ' + error.message);
+            });
+        };
+        reader.readAsDataURL(blob);
+    }, 'image/jpeg');
 
-            screenshotCount++;
-            log(`Captured and sent screenshot ${screenshotCount}`);
-        }
+    screenshotCount++;
+    log(`Captured and sent screenshot ${screenshotCount}`);
+}
     </script>
 </body>
 </html>
