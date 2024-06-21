@@ -39,18 +39,18 @@ def identify_bird():
             return jsonify({"error": "No image data received"}), 400
 
         image_data = data.get('image_url').split(",")[1]
-        print(f"Received image data of length: {len(image_data)}")
+        
 
         image = Image.open(io.BytesIO(base64.b64decode(image_data)))
-        print(f"Image opened. Size: {image.size}")
+        )
 
         # Convert PIL Image to OpenCV format
         opencv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-        print(f"Converted to OpenCV image. Shape: {opencv_image.shape}")
+        
 
         print("Sending image to model for prediction")
         result = model.predict(opencv_image, confidence=40, overlap=30).json()
-        print("Received result from model:", result)
+        
 
         if result['predictions']:
             bird_name = result['predictions'][0]['class']
@@ -61,7 +61,7 @@ def identify_bird():
             return jsonify({"bird_name": "No bird detected"})
 
     except Exception as e:
-        print("Error during prediction:", str(e))
+        
         return jsonify({"error": str(e)}), 500
 
 @app.route('/proxy_thumbnail', methods=['GET'])
