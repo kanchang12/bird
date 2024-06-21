@@ -89,57 +89,53 @@
             const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/0.jpg`;
             log(`Thumbnail URL: ${thumbnailUrl}`);
 
-            const tempImg = new Image();
-            tempImg.crossOrigin = "Anonymous";
-            tempImg.onload = function() {
-                log('Thumbnail loaded successfully');
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-
-                canvas.width = 300;
-                canvas.height = 300;
-
-                const scale = Math.min(canvas.width / tempImg.width, canvas.height / tempImg.height);
-                const newWidth = tempImg.width * scale;
-                const newHeight = tempImg.height * scale;
-
-                ctx.drawImage(tempImg, (canvas.width - newWidth) / 2, (canvas.height - newHeight) / 2, newWidth, newHeight);
-
-                const resizedImageUrl = canvas.toDataURL('image/jpeg');
-                document.getElementById('birdImage').src = resizedImageUrl;
-
-                log('Sending image to server for identification...');
-                fetch('/identify_bird', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ image_url: resizedImageUrl })
-                })
+            // Use proxy to fetch the image
+            fetch(`/proxy_thumbnail?url=${encodeURIComponent(thumbnailUrl)}`)
                 .then(response => {
-                    log(`Server response status: ${response.status}`);
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                    return response.json();
+                    return response.blob();
                 })
-                .then(data => {
-                    log(`Server response data: ${JSON.stringify(data)}`);
-                    if (data.bird_name) {
-                        document.getElementById('result').innerText = "Bird identified: " + data.bird_name;
-                    } else if (data.error) {
-                        document.getElementById('result').innerText = "Error: " + data.error;
-                    }
+                .then(blob => {
+                    const reader = new FileReader();
+                    reader.onload = function () {
+                        const base64data = reader.result;
+                        document.getElementById('birdImage').src = base64data;
+
+                        log('Sending image to server for identification...');
+                        fetch('/identify_bird', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ image_url: base64data })
+                        })
+                        .then(response => {
+                            log(`Server response status: ${response.status}`);
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            log(`Server response data: ${JSON.stringify(data)}`);
+                            if (data.bird_name) {
+                                document.getElementById('result').innerText = "Bird identified: " + data.bird_name;
+                            } else if (data.error) {
+                                document.getElementById('result').innerText = "Error: " + data.error;
+                            }
+                        })
+                        .catch(error => {
+                            log(`Error: ${error.message}`);
+                            document.getElementById('result').innerText = "An error occurred: " + error.message;
+                        });
+                    };
+                    reader.readAsDataURL(blob);
                 })
                 .catch(error => {
-                    log(`Error: ${error.message}`);
-                    document.getElementById('result').innerText = "An error occurred: " + error.message;
+                    log(`Error fetching thumbnail: ${error.message}`);
                 });
-            };
-            tempImg.onerror = function() {
-                log('Failed to load thumbnail');
-            };
-            tempImg.src = thumbnailUrl;
         }
     </script>
 </body>
