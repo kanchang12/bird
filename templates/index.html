@@ -80,9 +80,12 @@
             log(`Player error: ${event.data}`);
         }
 
+        let num = 0;
+
         function identifyBird(videoId) {
             log('Starting bird identification...');
-            const  thumbnailUrl = `https://img.youtube.com/vi/${videoId}/0.jpg?t=${new Date().getTime()}`;
+            num = (num + 1) % 4000;
+            const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/${num}.jpg`;
             log(`Thumbnail URL: ${thumbnailUrl}`);
 
             // Use proxy to fetch the image
