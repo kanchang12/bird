@@ -9,7 +9,7 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-roboflow_api_key = "282K9KJQbOG4dpF69t6D"
+roboflow_api_key = os.getenv('ROBOFLOW_API_KEY')
 ROBOFLOW_WORKSPACE = "bird-v2"
 ROBOFLOW_VERSION = 2
 
@@ -32,20 +32,25 @@ def identify_bird():
     image_data = data.get('image_url').split(",")[1]
 
     try:
+        print("Received image data")
         image = base64.b64decode(image_data)
         image_array = np.frombuffer(image, dtype=np.uint8)
         image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
 
+        print("Sending image to model for prediction")
         result = model.predict(image, confidence=40, overlap=30).json()
+        print("Received result from model:", result)
 
         if result['predictions']:
             bird_name = result['predictions'][0]['class']
-            print(bird_name)
+            print("Bird identified:", bird_name)
             response = jsonify({"bird_name": bird_name})
         else:
+            print("No bird detected")
             response = jsonify({"bird_name": "No bird detected"})
 
     except Exception as e:
+        print("Error during prediction:", str(e))
         response = jsonify({"error": str(e)}), 500
 
     return add_permissions_policy_headers(response)
