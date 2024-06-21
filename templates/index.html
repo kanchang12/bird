@@ -49,6 +49,7 @@
     <script>
         let player;
         let identificationInterval;
+        let snapshotIndex = 0;
 
         function log(message) {
             console.log(message);
@@ -80,88 +81,77 @@
             log(`Player error: ${event.data}`);
         }
 
+        function identifyBird(videoId) {
+            log('Starting bird identification...');
+            const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/${snapshotIndex}${Date.now()}.jpg`;
 
-
-function identifyBird(videoId) {
-    log('Starting bird identification...');
-    let num = -1;
-    num++;
-    if (num > 3) num = 0; // Cycle through 0, 1, 2, 3
-    const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/${num}?t=${Date.now()}.jpg`;
-    log(`Thumbnail URL: ${thumbnailUrl}`);
-
-    // Use proxy to fetch the image
-    fetch(`/proxy_thumbnail?url=${encodeURIComponent(thumbnailUrl)}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.blob();
-        })
-        .then(blob => {
-            const reader = new FileReader();
-            reader.onload = function () {
-                const base64data = reader.result;
-
-                log('Sending image to server for identification...');
-                fetch('/identify_bird', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ image_url: base64data })
-                })
+            // Use proxy to fetch the image
+            fetch(`/proxy_thumbnail?url=${encodeURIComponent(thumbnailUrl)}`)
                 .then(response => {
-                    log(`Server response status: ${response.status}`);
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                    return response.json();
+                    return response.blob();
                 })
-                .then(data => {
-                    log(`Server response data: ${JSON.stringify(data)}`);
-                    if (data.bird_name) {
-                        const birdList = document.getElementById('birdList');
-                        const birdEntry = document.createElement('div');
-                        birdEntry.className = 'birdEntry';
+                .then(blob => {
+                    const reader = new FileReader();
+                    reader.onload = function () {
+                        const base64data = reader.result;
 
-                        const birdImage = document.createElement('img');
-                        birdImage.src = base64data;
-                        birdImage.className = 'birdImage';
+                        log('Sending image to server for identification...');
+                        fetch('/identify_bird', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ 
+                                videoId: videoId,
+                                image: base64data 
+                            })
+                        })
+                        .then(response => {
+                            log(`Server response status: ${response.status}`);
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            log(`Server response data: ${JSON.stringify(data)}`);
+                            if (data.bird_name) {
+                                const birdList = document.getElementById('birdList');
+                                const birdEntry = document.createElement('div');
+                                birdEntry.className = 'birdEntry';
 
-                        const birdName = document.createElement('span');
-                        birdName.textContent = data.bird_name;
+                                const birdImage = document.createElement('img');
+                                birdImage.src = base64data;
+                                birdImage.className = 'birdImage';
 
-                        birdEntry.appendChild(birdImage);
-                        birdEntry.appendChild(birdName);
-                        birdList.appendChild(birdEntry);
-                    } else if (data.error) {
-                        log('Error: ' + data.error);
-                    }
+                                const birdName = document.createElement('span');
+                                birdName.textContent = data.bird_name;
+
+                                birdEntry.appendChild(birdImage);
+                                birdEntry.appendChild(birdName);
+                                birdList.appendChild(birdEntry);
+                            } else if (data.error) {
+                                log('Error: ' + data.error);
+                            }
+                        })
+                        .catch(error => {
+                            log('Error: ' + error.message);
+                        });
+                    };
+                    reader.readAsDataURL(blob);
                 })
                 .catch(error => {
-                    log('Error: ' + error.message);
+                    log('Error fetching thumbnail: ' + error.message);
                 });
-            };
-            reader.readAsDataURL(blob);
-        })
-        .catch(error => {
-            log('Error fetching thumbnail: ' + error.message);
-        })
-        .finally(() => {
-            // Assuming you have some logic to identify the image element in the DOM
-            const imageElement = document.querySelector(`img[src="${thumbnailUrl}"]`);
 
-            if (imageElement) {
-                imageElement.parentNode.removeChild(imageElement);
-                log(`Image ${thumbnailUrl} removed from DOM`);
-            } else {
-                log(`Image ${thumbnailUrl} not found in DOM`);
+            snapshotIndex++;
+            if (snapshotIndex > 3) {
+                snapshotIndex = 0; // Reset snapshot index to cycle through 0, 1, 2, 3
             }
-        });
-}
-
-       
+        }
     </script>
 </body>
 </html>
