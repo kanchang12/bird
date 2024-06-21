@@ -56,7 +56,7 @@
             videoElement.src = `https://www.youtube.com/watch?v=${videoId}`;
             videoElement.addEventListener('loadedmetadata', () => {
                 videoElement.play();
-                identifyBird();
+                setTimeout(identifyBird, 5000);  // Wait for 5 seconds to ensure video loads
             });
         }
 
@@ -72,6 +72,7 @@
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
             const imageUrl = canvas.toDataURL('image/jpeg');
+            console.log('Captured image URL:', imageUrl);
 
             fetch('/identify_bird', {
                 method: 'POST',
@@ -82,8 +83,10 @@
             })
             .then(response => response.json())
             .then(data => {
+                console.log('Response from server:', data);
                 if (data.bird_name) {
                     document.getElementById('result').innerText = "Bird identified: " + data.bird_name;
+                    document.getElementById('birdImage').src = imageUrl;
                 } else if (data.error) {
                     document.getElementById('result').innerText = "Error: " + data.error;
                 }
@@ -93,14 +96,6 @@
                 document.getElementById('result').innerText = "An error occurred.";
             });
         }
-    </script>
-
-    <script>
-        window.addEventListener('error', function (e) {
-            if (e.message.includes('googleads.g.doubleclick.net')) {
-                e.preventDefault();
-            }
-        });
     </script>
 </body>
 </html>
