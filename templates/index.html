@@ -24,6 +24,14 @@
             max-height: 300px;
             object-fit: contain;
         }
+        #log {
+            width: 100%;
+            height: 200px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -37,60 +45,70 @@
         <p id="result">No bird identified yet.</p>
         <img id="birdImage" src="" alt="Bird Image">
     </div>
+    <div id="log"></div>
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
         let player;
         let identificationInterval;
 
+        function log(message) {
+            const logElement = document.getElementById('log');
+            logElement.innerHTML += message + '<br>';
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+
         function loadVideoAndIdentify() {
+            log('Loading video and starting identification...');
             const videoUrl = document.getElementById('videoUrl').value;
             const videoId = videoUrl.split('v=')[1].split('&')[0];
+            log(`Video ID: ${videoId}`);
             player = new YT.Player('player', {
                 height: '315',
                 width: '420',
                 videoId: videoId,
                 events: {
-                    'onReady': onPlayerReady
+                    'onReady': onPlayerReady,
+                    'onError': onPlayerError
                 }
             });
-            // Start continuous identification
-            identificationInterval = setInterval(() => identifyBird(videoId), 30000);
         }
 
         function onPlayerReady(event) {
-            console.log("Player is ready");
-            // Trigger first identification immediately
+            log('Player is ready');
             identifyBird(player.getVideoData().video_id);
+            identificationInterval = setInterval(() => identifyBird(player.getVideoData().video_id), 30000);
+        }
+
+        function onPlayerError(event) {
+            log(`Player error: ${event.data}`);
         }
 
         function identifyBird(videoId) {
+            log('Starting bird identification...');
             const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/0.jpg`;
+            log(`Thumbnail URL: ${thumbnailUrl}`);
             
-            // Create a temporary image to get the original dimensions
             const tempImg = new Image();
+            tempImg.crossOrigin = "Anonymous";
             tempImg.onload = function() {
+                log('Thumbnail loaded successfully');
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 
-                // Set canvas size to desired dimensions (e.g., 300x300)
                 canvas.width = 300;
                 canvas.height = 300;
                 
-                // Calculate scaling factor
                 const scale = Math.min(canvas.width / tempImg.width, canvas.height / tempImg.height);
                 const newWidth = tempImg.width * scale;
                 const newHeight = tempImg.height * scale;
                 
-                // Draw image centered on canvas
                 ctx.drawImage(tempImg, (canvas.width - newWidth) / 2, (canvas.height - newHeight) / 2, newWidth, newHeight);
                 
-                // Get resized image data
                 const resizedImageUrl = canvas.toDataURL('image/jpeg');
-                
-                // Update displayed image
                 document.getElementById('birdImage').src = resizedImageUrl;
                 
-                // Send resized image to server
+                log('Sending image to server for identification...');
                 fetch('https://burning-bernie-webpagegem-ace9fd7e.koyeb.app/identify_bird', {
                     method: 'POST',
                     headers: {
@@ -99,14 +117,14 @@
                     body: JSON.stringify({ image_url: resizedImageUrl })
                 })
                 .then(response => {
-                    console.log('Received response from server:', response);
+                    log(`Server response status: ${response.status}`);
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Parsed response data:', data);
+                    log(`Server response data: ${JSON.stringify(data)}`);
                     if (data.bird_name) {
                         document.getElementById('result').innerText = "Bird identified: " + data.bird_name;
                     } else if (data.error) {
@@ -114,9 +132,12 @@
                     }
                 })
                 .catch(error => {
-                    console.error('Error:', error);
+                    log(`Error: ${error.message}`);
                     document.getElementById('result').innerText = "An error occurred: " + error.message;
                 });
+            };
+            tempImg.onerror = function() {
+                log('Failed to load thumbnail');
             };
             tempImg.src = thumbnailUrl;
         }
