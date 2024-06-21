@@ -81,10 +81,12 @@
 
         function identifyAndSendScreenshot() {
             log('Capturing screenshot and sending to server...');
+            
+            // Get the current video frame
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            canvas.width = player.getVideoWidth();
-            canvas.height = player.getVideoHeight();
+            canvas.width = player.getIframe().width;
+            canvas.height = player.getIframe().height;
             ctx.drawImage(player.getIframe(), 0, 0, canvas.width, canvas.height);
 
             canvas.toBlob(blob => {
