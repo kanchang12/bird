@@ -97,8 +97,10 @@
 
         function onPlayerReady(event) {
             log('Player is ready');
+            identificationInterval = setInterval(() => {
+                identifyBird(player.getVideoData().video_id);
+            }, 30000);
             identifyBird(player.getVideoData().video_id);
-            identificationInterval = setInterval(() => identifyBird(player.getVideoData().video_id), 30000);
         }
 
         function onPlayerError(event) {
