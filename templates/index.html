@@ -54,46 +54,49 @@
             console.log(message);
         }
 
-        function loadVideoAndIdentify() {
-            log('Loading video and starting identification...');
-            const videoUrl = document.getElementById('videoUrl').value;
-            const videoId = videoUrl.split('v=')[1].split('&')[0];
-            log(`Video ID: ${videoId}`);
-            player = new YT.Player('player', {
-                height: '540',
-                width: '960',
-                videoId: videoId,
-                events: {
-                    'onReady': onPlayerReady,
-                    'onError': onPlayerError
-                }
-            });
+       function loadVideoAndIdentify() {
+    log('Loading video and starting identification...');
+    const videoUrl = document.getElementById('videoUrl').value;
+    const videoId = videoUrl.split('v=')[1].split('&')[0];
+    log(`Video ID: ${videoId}`);
+    player = new YT.Player('player', {
+        height: '360',
+        width: '640',
+        videoId: videoId,
+        events: {
+            'onReady': onPlayerReady,
+            'onError': onPlayerError
+        },
+        playerVars: {
+            'autoplay': 1,
+            'controls': 1,
         }
+    });
+}
 
        function onPlayerReady(event) {
     log('Player is ready');
     event.target.playVideo(); // Start playing the video
-    setInterval(identifyAndSendScreenshot, 5000);
+    setTimeout(() => {
+        setInterval(identifyAndSendScreenshot, 5000);
+    }, 1000); // Wait 1 second before starting to capture screenshots
 }
 
         function onPlayerError(event) {
             log(`Player error: ${event.data}`);
         }
 
-        function identifyAndSendScreenshot() {
+       function identifyAndSendScreenshot() {
     log('Capturing screenshot and sending to server...');
-    
-    // Get the video element
-    const video = player.getIframe();
     
     // Create a canvas element
     const canvas = document.createElement('canvas');
-    canvas.width = video.width;
-    canvas.height = video.height;
+    canvas.width = 640;  // Set to a standard size
+    canvas.height = 360; // Adjust if needed
     
     // Draw the current video frame to the canvas
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(player.getIframe(), 0, 0, canvas.width, canvas.height);
 
     // Convert the canvas to a blob
     canvas.toBlob(blob => {
