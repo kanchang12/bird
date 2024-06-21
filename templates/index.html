@@ -134,6 +134,16 @@ function identifyBird(videoId) {
                                 birdEntry.appendChild(birdImage);
                                 birdEntry.appendChild(birdName);
                                 birdList.appendChild(birdEntry);
+                                // Assuming you have some logic to identify the image element in the DOM
+                                const imageElement = document.querySelector(`img[src="${thumbnailUrl}"]`);
+    
+                                if (imageElement) {
+                                    imageElement.parentNode.removeChild(imageElement);
+                                    log(`Image ${thumbnailUrl} removed from DOM`);
+                                } else {
+                                    log(`Image ${thumbnailUrl} not found in DOM`);
+                                }
+}
                             } else if (data.error) {
                                 log('Error: ' + data.error);
                             }
@@ -148,7 +158,7 @@ function identifyBird(videoId) {
                     log('Error fetching thumbnail: ' + error.message);
                 });
         }
-        const thumbnailUrl = ``;
+       
     </script>
 </body>
 </html>
