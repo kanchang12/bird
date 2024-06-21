@@ -33,20 +33,16 @@ def identify_bird():
     try:
         data = request.json
         if not data or 'image_url' not in data:
-            print("No image URL received")
-            return jsonify({"error": "No image URL received"}), 400
+            print("No image data received")
+            return jsonify({"error": "No image data received"}), 400
 
-        image_url = data.get('image_url')
-        print("Image URL:", image_url)
+        image_data = data.get('image_url').split(",")[1]
+        image = Image.open(io.BytesIO(base64.b64decode(image_data)))
+        
+        # Convert PIL Image to OpenCV format
+        opencv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
 
-        # Download the image
-        response = requests.get(image_url)
-        image = Image.open(BytesIO(response.content))
-
-        # Convert PIL Image to numpy array
-        image_np = np.array(image)
-
-        result = model.predict(image_np, confidence=40, overlap=30).json()
+        result = model.predict(opencv_image, confidence=40, overlap=30).json()
         print("Received result from model:", result)
 
         if result['predictions']:
