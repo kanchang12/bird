@@ -48,7 +48,7 @@
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
         let player;
-        let snapshotIndex = 0;
+        let screenshotCount = 0;
 
         function log(message) {
             console.log(message);
@@ -72,80 +72,72 @@
 
         function onPlayerReady(event) {
             log('Player is ready');
-            setInterval(identifyAndSendSnapshot, 5000); // Capture and send snapshot every 5 seconds
+            setInterval(identifyAndSendScreenshot, 5000); // Capture and send screenshot every 5 seconds
         }
 
         function onPlayerError(event) {
             log(`Player error: ${event.data}`);
         }
 
-        function identifyAndSendSnapshot() {
-            log('Identifying bird and sending snapshot...');
-            const thumbnailUrl = `https://img.youtube.com/vi/${player.getVideoData().video_id}/${snapshotIndex}.jpg?t=${Date.now()}`;
+        function identifyAndSendScreenshot() {
+            log('Capturing screenshot and sending to server...');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = player.getVideoWidth();
+            canvas.height = player.getVideoHeight();
+            ctx.drawImage(player.getIframe(), 0, 0, canvas.width, canvas.height);
 
-            // Use proxy to fetch the image
-            fetch(`/proxy_thumbnail?url=${encodeURIComponent(thumbnailUrl)}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.blob();
-                })
-                .then(blob => {
-                    const reader = new FileReader();
-                    reader.onload = function () {
-                        const base64data = reader.result;
+            canvas.toBlob(blob => {
+                const reader = new FileReader();
+                reader.onload = function () {
+                    const base64data = reader.result;
 
-                        log('Sending image to server for identification...');
-                        fetch('/identify_bird', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ 
-                                videoId: player.getVideoData().video_id,
-                                image: base64data 
-                            })
+                    fetch('/identify_bird', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ 
+                            image_url: base64data  // Sending base64 encoded image data
                         })
-                        .then(response => {
-                            log(`Server response status: ${response.status}`);
-                            if (!response.ok) {
-                                throw new Error(`HTTP error! status: ${response.status}`);
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            log(`Server response data: ${JSON.stringify(data)}`);
-                            if (data.bird_name) {
-                                const birdList = document.getElementById('birdList');
-                                const birdEntry = document.createElement('div');
-                                birdEntry.className = 'birdEntry';
+                    })
+                    .then(response => {
+                        log(`Server response status: ${response.status}`);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        log(`Server response data: ${JSON.stringify(data)}`);
+                        if (data.bird_name) {
+                            const birdList = document.getElementById('birdList');
+                            const birdEntry = document.createElement('div');
+                            birdEntry.className = 'birdEntry';
 
-                                const birdImage = document.createElement('img');
-                                birdImage.src = base64data;
-                                birdImage.className = 'birdImage';
+                            const birdImage = document.createElement('img');
+                            birdImage.src = base64data;
+                            birdImage.className = 'birdImage';
 
-                                const birdName = document.createElement('span');
-                                birdName.textContent = data.bird_name;
+                            const birdName = document.createElement('span');
+                            birdName.textContent = data.bird_name;
 
-                                birdEntry.appendChild(birdImage);
-                                birdEntry.appendChild(birdName);
-                                birdList.appendChild(birdEntry);
-                            } else if (data.error) {
-                                log('Error: ' + data.error);
-                            }
-                        })
-                        .catch(error => {
-                            log('Error: ' + error.message);
-                        });
-                    };
-                    reader.readAsDataURL(blob);
-                })
-                .catch(error => {
-                    log('Error fetching thumbnail: ' + error.message);
-                });
+                            birdEntry.appendChild(birdImage);
+                            birdEntry.appendChild(birdName);
+                            birdList.appendChild(birdEntry);
+                        } else if (data.error) {
+                            log('Error: ' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        log('Error: ' + error.message);
+                    });
+                };
+                reader.readAsDataURL(blob);
+            }, 'image/jpeg');
 
-            snapshotIndex = (snapshotIndex + 1) % 4; // Cycle through 0, 1, 2, 3
+            screenshotCount++;
+            log(`Captured and sent screenshot ${screenshotCount}`);
         }
     </script>
 </body>
