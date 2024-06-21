@@ -46,56 +46,51 @@
     </div>
     <div id="birdList"></div>
     <script src="https://www.youtube.com/iframe_api"></script>
-   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        let num = -1;
-        let prevNum = -1;
+    <script>
+        let player;
+        let identificationInterval;
 
         function log(message) {
-            const logElement = document.getElementById('log');
-            if (logElement) {
-                logElement.innerHTML += message + '<br>';
-                logElement.scrollTop = logElement.scrollHeight;
-            } else {
-                console.log(message);
-            }
+            console.log(message);
         }
 
-        function identifyBird(videoId) {
-            log('Starting bird identification...');
-            num++;
-            if (num > 3) num = 0; // Cycle through 0, 1, 2, 3
-            const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/${num}.jpg?t=${Date.now()}`;
-            log(`Thumbnail URL: ${thumbnailUrl}`);
-
-            if (prevNum !== -1) {
-                // Replace previous image with placeholder before deleting
-                const placeholderUrl = `path/to/placeholder.jpg`; // Replace with actual placeholder image URL
-                const prevImg = document.getElementById(`birdImage${prevNum}`);
-                if (prevImg) {
-                    prevImg.src = placeholderUrl;
+        function loadVideoAndIdentify() {
+            log('Loading video and starting identification...');
+            const videoUrl = document.getElementById('videoUrl').value;
+            const videoId = videoUrl.split('v=')[1].split('&')[0];
+            log(`Video ID: ${videoId}`);
+            player = new YT.Player('player', {
+                height: '540',
+                width: '960',
+                videoId: videoId,
+                events: {
+                    'onReady': onPlayerReady,
+                    'onError': onPlayerError
                 }
-            }
+            });
+        }
 
-            // Create new image element
-            const img = document.createElement('img');
-            img.id = `birdImage${num}`;
-            img.src = thumbnailUrl;
-            img.alt = "Bird Image";
+        function onPlayerReady(event) {
+            log('Player is ready');
+            identifyBird(player.getVideoData().video_id);
+            identificationInterval = setInterval(() => identifyBird(player.getVideoData().video_id), 5000);
+        }
 
-            // Append new image to the birdInfo div if it exists
-            const birdInfoDiv = document.getElementById('birdInfo');
-            if (birdInfoDiv) {
-                birdInfoDiv.appendChild(img);
-            } else {
-                log('Error: birdInfo div not found in HTML');
-                return;
-            }
+        function onPlayerError(event) {
+            log(`Player error: ${event.data}`);
+        }
 
-            // Update previous number
-            prevNum = num;
+let num = -1;
 
-            // Send image to server for identification
+function identifyBird(videoId) {
+    log('Starting bird identification...');
+    num++;
+    if (num > 3) num = 0; // Cycle through 0, 1, 2, 3
+    const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/${num}.jpg?t=${Date.now()}`;
+    log(`Thumbnail URL: ${thumbnailUrl}`);
+    
+
+            // Use proxy to fetch the image
             fetch(`/proxy_thumbnail?url=${encodeURIComponent(thumbnailUrl)}`)
                 .then(response => {
                     if (!response.ok) {
@@ -126,34 +121,34 @@
                         .then(data => {
                             log(`Server response data: ${JSON.stringify(data)}`);
                             if (data.bird_name) {
-                                const birdNameDiv = document.createElement('div');
-                                birdNameDiv.innerText = data.bird_name;
-                                if (birdInfoDiv) {
-                                    birdInfoDiv.appendChild(birdNameDiv);
-                                } else {
-                                    log('Error: birdInfo div not found in HTML');
-                                }
+                                const birdList = document.getElementById('birdList');
+                                const birdEntry = document.createElement('div');
+                                birdEntry.className = 'birdEntry';
+
+                                const birdImage = document.createElement('img');
+                                birdImage.src = base64data;
+                                birdImage.className = 'birdImage';
+
+                                const birdName = document.createElement('span');
+                                birdName.textContent = data.bird_name;
+
+                                birdEntry.appendChild(birdImage);
+                                birdEntry.appendChild(birdName);
+                                birdList.appendChild(birdEntry);
                             } else if (data.error) {
-                                log("Error: " + data.error);
+                                log('Error: ' + data.error);
                             }
                         })
                         .catch(error => {
-                            log("Error: " + error.message);
+                            log('Error: ' + error.message);
                         });
                     };
                     reader.readAsDataURL(blob);
                 })
                 .catch(error => {
-                    log(`Error fetching thumbnail: ${error.message}`);
+                    log('Error fetching thumbnail: ' + error.message);
                 });
         }
-
-        // Example usage:
-        // Replace 'videoId' with your actual video ID
-        const videoId = 'DAUWENc5JWQ';
-        identifyBird(videoId); // Call the function to start identifying birds
-    });
-</script>
-
+    </script>
 </body>
 </html>
