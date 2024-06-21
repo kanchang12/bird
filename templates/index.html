@@ -87,7 +87,7 @@ function identifyBird(videoId) {
     let num = -1;
     num++;
     if (num > 3) num = 0; // Cycle through 0, 1, 2, 3
-    const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/${num}?${Date.now()}.jpg`;
+    const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/${num}?t=${Date.now()}.jpg`;
     log(`Thumbnail URL: ${thumbnailUrl}`);
 
     // Use proxy to fetch the image
