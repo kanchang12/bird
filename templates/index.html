@@ -41,6 +41,7 @@
 </head>
 <body>
     <div id="videoContainer">
+        <input type="text" id="apiKey" placeholder="Enter YouTube API Key (optional)">
         <input type="text" id="videoUrl" placeholder="Enter video URL">
         <button onclick="loadVideoAndIdentify()">Load Video and Start Identification</button>
         <div id="player"></div>
@@ -51,6 +52,7 @@
     <script>
         let player;
         let intervalId;
+        let youtubeApiKey = '';
 
         function log(message) {
             console.log(message);
@@ -58,6 +60,7 @@
 
         function loadVideoAndIdentify() {
             log('Loading video and starting identification...');
+            youtubeApiKey = document.getElementById('apiKey').value;
             const videoUrl = document.getElementById('videoUrl').value;
             const videoId = videoUrl.split('v=')[1].split('&')[0];
             log(`Video ID: ${videoId}`);
@@ -110,7 +113,8 @@
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({ 
-                            image_url: base64data
+                            image_url: base64data,
+                            youtube_api_key: youtubeApiKey  // Include API key if provided
                         })
                     })
                     .then(response => {
