@@ -48,7 +48,6 @@
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
         let player;
-        let identificationInterval;
         let snapshotIndex = 0;
 
         function log(message) {
@@ -73,17 +72,16 @@
 
         function onPlayerReady(event) {
             log('Player is ready');
-            identifyBird(player.getVideoData().video_id);
-            identificationInterval = setInterval(() => identifyBird(player.getVideoData().video_id), 5000);
+            setInterval(identifyAndSendSnapshot, 5000); // Capture and send snapshot every 5 seconds
         }
 
         function onPlayerError(event) {
             log(`Player error: ${event.data}`);
         }
 
-        function identifyBird(videoId) {
-            log('Starting bird identification...');
-            const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/${snapshotIndex}${Date.now()}.jpg`;
+        function identifyAndSendSnapshot() {
+            log('Identifying bird and sending snapshot...');
+            const thumbnailUrl = `https://img.youtube.com/vi/${player.getVideoData().video_id}/${snapshotIndex}.jpg?t=${Date.now()}`;
 
             // Use proxy to fetch the image
             fetch(`/proxy_thumbnail?url=${encodeURIComponent(thumbnailUrl)}`)
@@ -105,7 +103,7 @@
                                 'Content-Type': 'application/json',
                             },
                             body: JSON.stringify({ 
-                                videoId: videoId,
+                                videoId: player.getVideoData().video_id,
                                 image: base64data 
                             })
                         })
@@ -147,10 +145,7 @@
                     log('Error fetching thumbnail: ' + error.message);
                 });
 
-            snapshotIndex++;
-            if (snapshotIndex > 3) {
-                snapshotIndex = 0; // Reset snapshot index to cycle through 0, 1, 2, 3
-            }
+            snapshotIndex = (snapshotIndex + 1) % 4; // Cycle through 0, 1, 2, 3
         }
     </script>
 </body>
