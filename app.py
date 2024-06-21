@@ -75,8 +75,7 @@ def proxy_thumbnail():
         return send_file(
             io.BytesIO(response.content),
             mimetype='image/jpeg',
-            as_attachment=False,
-            attachment_filename='thumbnail.jpg'
+            download_name='thumbnail.jpg'
         )
     else:
         return jsonify({"error": "Failed to fetch image"}), response.status_code
