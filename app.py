@@ -46,6 +46,10 @@ def identify_bird():
         
         print("Sending image to model for prediction")
         result = model.predict(opencv_image, confidence=20, overlap=30).json()
+        # Delete the image data after processing
+        del image_data
+        del image
+        del opencv_image
         
         print("Raw prediction result:", result)  # Print raw result for debugging
         
