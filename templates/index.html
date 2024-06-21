@@ -82,62 +82,64 @@
         function onPlayerReady(event) {
             log('Player is ready');
             event.target.playVideo();
-            intervalId = setInterval(identifyAndSendScreenshot, 5000); // Check every 5 seconds
+            intervalId = setInterval(identifyBird, 5000); // Check every 5 seconds
         }
 
         function onPlayerError(event) {
             log(`Player error: ${event.data}`);
         }
 
-        function identifyAndSendScreenshot() {
-            log('Capturing screenshot and sending to server...');
+        function identifyBird() {
+            log('Capturing video data and sending to server...');
             
-            // Create a canvas element
-            const canvas = document.createElement('canvas');
-            canvas.width = 640;  // Set to a standard size
-            canvas.height = 360; // Adjust if needed
-            
-            // Draw the current video frame to the canvas
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(player.getIframe(), 0, 0, canvas.width, canvas.height);
+            const videoData = player.getVideoData();
+            const currentTime = player.getCurrentTime();
+            const thumbnailUrl = `https://img.youtube.com/vi/${videoData.video_id}/mqdefault.jpg`;
 
-            // Convert the canvas to a blob
-            canvas.toBlob(blob => {
-                const reader = new FileReader();
-                reader.onload = function () {
-                    const base64data = reader.result;
+            // Fetch the thumbnail image
+            fetch(thumbnailUrl)
+                .then(response => response.blob())
+                .then(blob => {
+                    const reader = new FileReader();
+                    reader.onload = function() {
+                        const base64data = reader.result;
 
-                    fetch('/identify_bird', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ 
-                            image_url: base64data,
-                            youtube_api_key: youtubeApiKey  // Include API key if provided
+                        fetch('/identify_bird', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ 
+                                image_url: base64data,
+                                youtube_api_key: youtubeApiKey,
+                                video_id: videoData.video_id,
+                                current_time: currentTime
+                            })
                         })
-                    })
-                    .then(response => {
-                        log(`Server response status: ${response.status}`);
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        log(`Server response data: ${JSON.stringify(data)}`);
-                        if (data.bird_name) {
-                            addBirdEntry(base64data, data.bird_name);
-                        } else if (data.error) {
-                            log('Error: ' + data.error);
-                        }
-                    })
-                    .catch(error => {
-                        log('Error: ' + error.message);
-                    });
-                };
-                reader.readAsDataURL(blob);
-            }, 'image/jpeg');
+                        .then(response => {
+                            log(`Server response status: ${response.status}`);
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            log(`Server response data: ${JSON.stringify(data)}`);
+                            if (data.bird_name) {
+                                addBirdEntry(base64data, data.bird_name);
+                            } else if (data.error) {
+                                log('Error: ' + data.error);
+                            }
+                        })
+                        .catch(error => {
+                            log('Error: ' + error.message);
+                        });
+                    };
+                    reader.readAsDataURL(blob);
+                })
+                .catch(error => {
+                    log('Error fetching thumbnail: ' + error.message);
+                });
         }
 
         function addBirdEntry(imageData, birdName) {
