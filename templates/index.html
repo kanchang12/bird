@@ -7,22 +7,30 @@
     <style>
         body {
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            justify-content: flex-start; /* Align elements to the left */
+            align-items: flex-start; /* Align elements to the top */
             padding: 20px;
         }
-        #videoContainer, #birdInfo {
+        #videoContainer {
             width: 420px;
-            margin-bottom: 20px;
+            margin-right: 20px; /* Add margin for spacing */
         }
         #player {
             width: 100%;
             height: auto;
         }
+        #birdInfo {
+            width: 300px; /* Adjust width for smaller size */
+            margin-top: 20px; /* Add margin for spacing */
+        }
         #birdImage {
             max-width: 100%;
-            max-height: 300px;
+            max-height: 200px; /* Adjust maximum height */
             object-fit: contain;
+            margin-top: 10px; /* Add margin for spacing */
+        }
+        #birdName {
+            margin-top: 10px; /* Add margin for spacing */
         }
         #log {
             width: 100%;
@@ -42,8 +50,8 @@
     </div>
     <div id="birdInfo">
         <h2>Bird Information</h2>
-        <p id="result">No bird identified yet.</p>
         <img id="birdImage" src="" alt="Bird Image">
+        <p id="birdName"></p> <!-- Placeholder for bird name -->
     </div>
     <div id="log"></div>
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -86,56 +94,60 @@
 
         function identifyBird(videoId) {
             log('Starting bird identification...');
-            const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/0.jpg`;
+            const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/0.jpg?t=${Date.now()}`; // Append timestamp to force reload
             log(`Thumbnail URL: ${thumbnailUrl}`);
-
-            // Use proxy to fetch the image
-            fetch(`/proxy_thumbnail?url=${encodeURIComponent(thumbnailUrl)}`)
+            
+            const tempImg = new Image();
+            tempImg.crossOrigin = "Anonymous";
+            tempImg.onload = function() {
+                log('Thumbnail loaded successfully');
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                canvas.width = 300;
+                canvas.height = 300;
+                
+                const scale = Math.min(canvas.width / tempImg.width, canvas.height / tempImg.height);
+                const newWidth = tempImg.width * scale;
+                const newHeight = tempImg.height * scale;
+                
+                ctx.drawImage(tempImg, (canvas.width - newWidth) / 2, (canvas.height - newHeight) / 2, newWidth, newHeight);
+                
+                const resizedImageUrl = canvas.toDataURL('image/jpeg');
+                document.getElementById('birdImage').src = resizedImageUrl;
+                
+                log('Sending image to server for identification...');
+                fetch('/identify_bird', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ image_url: resizedImageUrl })
+                })
                 .then(response => {
+                    log(`Server response status: ${response.status}`);
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                    return response.blob();
+                    return response.json();
                 })
-                .then(blob => {
-                    const reader = new FileReader();
-                    reader.onload = function () {
-                        const base64data = reader.result;
-                        document.getElementById('birdImage').src = base64data;
-
-                        log('Sending image to server for identification...');
-                        fetch('/identify_bird', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ image_url: base64data })
-                        })
-                        .then(response => {
-                            log(`Server response status: ${response.status}`);
-                            if (!response.ok) {
-                                throw new Error(`HTTP error! status: ${response.status}`);
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            log(`Server response data: ${JSON.stringify(data)}`);
-                            if (data.bird_name) {
-                                document.getElementById('result').innerText = "Bird identified: " + data.bird_name;
-                            } else if (data.error) {
-                                document.getElementById('result').innerText = "Error: " + data.error;
-                            }
-                        })
-                        .catch(error => {
-                            log(`Error: ${error.message}`);
-                            document.getElementById('result').innerText = "An error occurred: " + error.message;
-                        });
-                    };
-                    reader.readAsDataURL(blob);
+                .then(data => {
+                    log(`Server response data: ${JSON.stringify(data)}`);
+                    if (data.bird_name) {
+                        document.getElementById('birdName').innerText = "Bird identified: " + data.bird_name;
+                    } else if (data.error) {
+                        document.getElementById('birdName').innerText = "Error: " + data.error;
+                    }
                 })
                 .catch(error => {
-                    log(`Error fetching thumbnail: ${error.message}`);
+                    log(`Error: ${error.message}`);
+                    document.getElementById('birdName').innerText = "An error occurred: " + error.message;
                 });
+            };
+            tempImg.onerror = function() {
+                log('Failed to load thumbnail');
+            };
+            tempImg.src = thumbnailUrl;
         }
     </script>
 </body>
