@@ -59,33 +59,45 @@
     </div>
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
-        let player;
-        let identificationInterval;
+        // Define log function globally
+function log(message) {
+    const logElement = document.getElementById('log');
+    logElement.innerHTML += message + '<br>';
+    logElement.scrollTop = logElement.scrollHeight;
+    console.log(message);
+}
 
-        function loadVideoAndIdentify() {
-            const videoUrl = document.getElementById('videoUrl').value;
-            const videoId = videoUrl.split('v=')[1].split('&')[0];
-            player = new YT.Player('player', {
-                height: '315',
-                width: '420',
-                videoId: videoId,
-                events: {
-                    'onReady': onPlayerReady,
-                    'onError': onPlayerError
-                }
-            });
+// Rest of your JavaScript code
+let player;
+let identificationInterval;
+
+function loadVideoAndIdentify() {
+    log('Loading video and starting identification...');
+    const videoUrl = document.getElementById('videoUrl').value;
+    const videoId = videoUrl.split('v=')[1].split('&')[0];
+    log(`Video ID: ${videoId}`);
+    player = new YT.Player('player', {
+        height: '315',
+        width: '420',
+        videoId: videoId,
+        events: {
+            'onReady': onPlayerReady,
+            'onError': onPlayerError
         }
+    });
+}
 
-        function onPlayerReady(event) {
-            identifyBird(player.getVideoData().video_id);
-            identificationInterval = setInterval(() => identifyBird(player.getVideoData().video_id), 30000);
-        }
+function onPlayerReady(event) {
+    log('Player is ready');
+    identifyBird(player.getVideoData().video_id);
+    identificationInterval = setInterval(() => identifyBird(player.getVideoData().video_id), 5000);
+}
 
-        function onPlayerError(event) {
-            console.error('Player error:', event.data);
-        }
+function onPlayerError(event) {
+    log(`Player error: ${event.data}`);
+}
 
-        function identifyBird(videoId) {
+function identifyBird(videoId) {
     log('Starting bird identification...');
     const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/0.jpg?t=${Date.now()}`;
     log(`Thumbnail URL: ${thumbnailUrl}`);
@@ -138,31 +150,6 @@
         });
 }
 
-
-        function appendBirdItem(imageBase64, birdName) {
-            const birdList = document.getElementById('birdList');
-            const birdItem = document.createElement('div');
-            birdItem.classList.add('birdItem');
-
-            // Bird Image
-            const birdImage = document.createElement('img');
-            birdImage.classList.add('birdImage');
-            birdImage.src = imageBase64;
-            birdItem.appendChild(birdImage);
-
-            // Bird Information
-            const birdInfo = document.createElement('div');
-            birdInfo.classList.add('birdInfo');
-
-            // Bird Name
-            const nameParagraph = document.createElement('p');
-            nameParagraph.classList.add('birdName');
-            nameParagraph.innerText = birdName;
-            birdInfo.appendChild(nameParagraph);
-
-            birdItem.appendChild(birdInfo);
-            birdList.appendChild(birdItem);
-        }
     </script>
 </body>
 </html>
