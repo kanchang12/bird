@@ -11,18 +11,41 @@
             align-items: center;
             padding: 20px;
         }
-        #videoContainer, #birdInfo {
+        #videoContainer {
             width: 420px;
             margin-bottom: 20px;
+            align-self: flex-start; /* Align to the top left corner */
         }
         #player {
             width: 100%;
             height: auto;
         }
-        #birdImage {
-            max-width: 100%;
-            max-height: 300px;
+        #birdList {
+            width: 420px;
+            margin-top: 20px;
+        }
+        .birdItem {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+        }
+        .birdItem:last-child {
+            border-bottom: none;
+        }
+        .birdInfo {
+            flex-grow: 1;
+            margin-left: 10px;
+        }
+        .birdImage {
+            max-width: 100px;
+            max-height: 100px;
             object-fit: contain;
+        }
+        .birdName {
+            font-weight: bold;
+            margin-top: 5px;
         }
         #log {
             width: 100%;
@@ -40,10 +63,8 @@
         <button onclick="loadVideoAndIdentify()">Load Video and Start Identification</button>
         <div id="player"></div>
     </div>
-    <div id="birdInfo">
-        <h2>Bird Information</h2>
-        <p id="result">No bird identified yet.</p>
-        <img id="birdImage" src="" alt="Bird Image">
+    <div id="birdList">
+        <!-- Bird items will be appended here -->
     </div>
     <div id="log"></div>
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -86,7 +107,7 @@
 
         function identifyBird(videoId) {
             log('Starting bird identification...');
-            const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/0.jpg`;
+            const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/0.jpg?t=${Date.now()}`; // Append timestamp to force reload
             log(`Thumbnail URL: ${thumbnailUrl}`);
 
             // Use proxy to fetch the image
@@ -101,7 +122,6 @@
                     const reader = new FileReader();
                     reader.onload = function () {
                         const base64data = reader.result;
-                        document.getElementById('birdImage').src = base64data;
 
                         log('Sending image to server for identification...');
                         fetch('/identify_bird', {
@@ -120,15 +140,11 @@
                         })
                         .then(data => {
                             log(`Server response data: ${JSON.stringify(data)}`);
-                            if (data.bird_name) {
-                                document.getElementById('result').innerText = "Bird identified: " + data.bird_name;
-                            } else if (data.error) {
-                                document.getElementById('result').innerText = "Error: " + data.error;
-                            }
+                            appendBirdItem(base64data, data.bird_name);
                         })
                         .catch(error => {
                             log(`Error: ${error.message}`);
-                            document.getElementById('result').innerText = "An error occurred: " + error.message;
+                            appendBirdItem(base64data, "Error identifying bird");
                         });
                     };
                     reader.readAsDataURL(blob);
@@ -136,6 +152,31 @@
                 .catch(error => {
                     log(`Error fetching thumbnail: ${error.message}`);
                 });
+        }
+
+        function appendBirdItem(imageBase64, birdName) {
+            const birdList = document.getElementById('birdList');
+            const birdItem = document.createElement('div');
+            birdItem.classList.add('birdItem');
+
+            // Bird Image
+            const birdImage = document.createElement('img');
+            birdImage.classList.add('birdImage');
+            birdImage.src = imageBase64;
+            birdItem.appendChild(birdImage);
+
+            // Bird Information
+            const birdInfo = document.createElement('div');
+            birdInfo.classList.add('birdInfo');
+
+            // Bird Name
+            const nameParagraph = document.createElement('p');
+            nameParagraph.classList.add('birdName');
+            nameParagraph.innerText = birdName;
+            birdInfo.appendChild(nameParagraph);
+
+            birdItem.appendChild(birdInfo);
+            birdList.appendChild(birdItem);
         }
     </script>
 </body>
