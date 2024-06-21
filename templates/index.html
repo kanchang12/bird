@@ -48,12 +48,7 @@
             margin-top: 5px;
         }
         #log {
-            width: 100%;
-            height: 200px;
-            overflow-y: scroll;
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin-top: 20px;
+            display: none; /* Hide the log output */
         }
     </style>
 </head>
@@ -66,24 +61,14 @@
     <div id="birdList">
         <!-- Bird items will be appended here -->
     </div>
-    <div id="log"></div>
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
         let player;
-        let identificationInterval;
-
-        function log(message) {
-            const logElement = document.getElementById('log');
-            logElement.innerHTML += message + '<br>';
-            logElement.scrollTop = logElement.scrollHeight;
-            console.log(message);
-        }
 
         function loadVideoAndIdentify() {
-            log('Loading video and starting identification...');
+            clearBirdList(); // Clear previous bird items
             const videoUrl = document.getElementById('videoUrl').value;
             const videoId = videoUrl.split('v=')[1].split('&')[0];
-            log(`Video ID: ${videoId}`);
             player = new YT.Player('player', {
                 height: '315',
                 width: '420',
@@ -96,23 +81,15 @@
         }
 
         function onPlayerReady(event) {
-            log('Player is ready');
-            identificationInterval = setInterval(() => {
-                identifyBird(player.getVideoData().video_id);
-            }, 30000);
             identifyBird(player.getVideoData().video_id);
         }
 
         function onPlayerError(event) {
-            log(`Player error: ${event.data}`);
+            console.error('Player error:', event.data);
         }
 
         function identifyBird(videoId) {
-            log('Starting bird identification...');
             const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/0.jpg?t=${Date.now()}`; // Append timestamp to force reload
-            log(`Thumbnail URL: ${thumbnailUrl}`);
-
-            // Use proxy to fetch the image
             fetch(`/proxy_thumbnail?url=${encodeURIComponent(thumbnailUrl)}`)
                 .then(response => {
                     if (!response.ok) {
@@ -124,8 +101,6 @@
                     const reader = new FileReader();
                     reader.onload = function () {
                         const base64data = reader.result;
-
-                        log('Sending image to server for identification...');
                         fetch('/identify_bird', {
                             method: 'POST',
                             headers: {
@@ -134,25 +109,23 @@
                             body: JSON.stringify({ image_url: base64data })
                         })
                         .then(response => {
-                            log(`Server response status: ${response.status}`);
                             if (!response.ok) {
                                 throw new Error(`HTTP error! status: ${response.status}`);
                             }
                             return response.json();
                         })
                         .then(data => {
-                            log(`Server response data: ${JSON.stringify(data)}`);
                             appendBirdItem(base64data, data.bird_name);
                         })
                         .catch(error => {
-                            log(`Error: ${error.message}`);
-                            appendBirdItem(base64data, "Error identifying bird");
+                            console.error('Error identifying bird:', error);
+                            appendBirdItem(base64data, 'Error identifying bird');
                         });
                     };
                     reader.readAsDataURL(blob);
                 })
                 .catch(error => {
-                    log(`Error fetching thumbnail: ${error.message}`);
+                    console.error('Error fetching thumbnail:', error);
                 });
         }
 
@@ -179,6 +152,11 @@
 
             birdItem.appendChild(birdInfo);
             birdList.appendChild(birdItem);
+        }
+
+        function clearBirdList() {
+            const birdList = document.getElementById('birdList');
+            birdList.innerHTML = ''; // Clear all children
         }
     </script>
 </body>
