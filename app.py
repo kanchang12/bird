@@ -16,6 +16,12 @@ rf = Roboflow(api_key=roboflow_api_key)
 project = rf.workspace().project(ROBOFLOW_WORKSPACE)
 model = project.version(ROBOFLOW_VERSION).model
 
+
+@app.before_request
+def before_request():
+    request.headers['Permissions-Policy'] = 'geolocation=(self), camera=(), microphone=(), fullscreen=*, payment=()'
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
