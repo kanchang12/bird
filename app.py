@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, make_response
+from flask import Flask, request, jsonify, render_template, make_response, send_file
 from roboflow import Roboflow
 import cv2
 import numpy as np
@@ -7,6 +7,7 @@ from flask_cors import CORS
 import os
 from PIL import Image
 import io
+import requests
 
 app = Flask(__name__)
 CORS(app)
@@ -28,7 +29,7 @@ def index():
     response = make_response(render_template('index.html'))
     return add_permissions_policy_headers(response)
 
-@app.route('/identify_bird', methods=['GET', 'POST'])
+@app.route('/identify_bird', methods=['POST'])
 def identify_bird():
     print("Received request to /identify_bird")
     try:
@@ -62,6 +63,23 @@ def identify_bird():
     except Exception as e:
         print("Error during prediction:", str(e))
         return jsonify({"error": str(e)}), 500
+
+@app.route('/proxy_thumbnail', methods=['GET'])
+def proxy_thumbnail():
+    url = request.args.get('url')
+    if not url:
+        return jsonify({"error": "No URL provided"}), 400
+    
+    response = requests.get(url, stream=True)
+    if response.status_code == 200:
+        return send_file(
+            io.BytesIO(response.content),
+            mimetype='image/jpeg',
+            as_attachment=False,
+            attachment_filename='thumbnail.jpg'
+        )
+    else:
+        return jsonify({"error": "Failed to fetch image"}), response.status_code
 
 @app.route('/test', methods=['GET'])
 def test():
