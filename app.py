@@ -11,7 +11,7 @@ import io
 app = Flask(__name__)
 CORS(app)
 
-roboflow_api_key = os.getenv('ROBOFLOW_API_KEY')
+roboflow_api_key = "282K9KJQbOG4dpF69t6D"
 ROBOFLOW_WORKSPACE = "bird-v2"
 ROBOFLOW_VERSION = 2
 
