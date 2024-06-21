@@ -29,19 +29,29 @@ def index():
 
 @app.route('/identify_bird', methods=['POST'])
 def identify_bird():
-    data = request.json
-    image_data = data.get('image_url').split(",")[1]
-
+    print("Received request to /identify_bird")
     try:
-        print("Received image data")
+        data = request.json
+        print("Received data:", data)
+        
+        if not data or 'image_url' not in data:
+            print("No image data received")
+            return jsonify({"error": "No image data received"}), 400
+
+        image_data = data.get('image_url').split(",")[1]
+        print("Image data length:", len(image_data))
+
+        print("Decoding image data")
         image = base64.b64decode(image_data)
         image_array = np.frombuffer(image, dtype=np.uint8)
         image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
-
+        
+        print("Image shape:", image.shape)
+        
         print("Sending image to model for prediction")
         result = model.predict(image, confidence=40, overlap=30).json()
         print("Received result from model:", result)
-
+        
         if result['predictions']:
             bird_name = result['predictions'][0]['class']
             print("Bird identified:", bird_name)
@@ -49,12 +59,12 @@ def identify_bird():
         else:
             print("No bird detected")
             response = jsonify({"bird_name": "No bird detected"})
-
+        
+        print("Sending response:", response)
+        return add_permissions_policy_headers(response)
     except Exception as e:
         print("Error during prediction:", str(e))
-        response = jsonify({"error": str(e)}), 500
-
-    return add_permissions_policy_headers(response)
+        return jsonify({"error": str(e)}), 500
 
 
 
