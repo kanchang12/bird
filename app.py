@@ -21,6 +21,7 @@ def add_permissions_policy_headers(response):
     response.headers['Permissions-Policy'] = 'geolocation=(self), camera=(), microphone=(), fullscreen=*, payment=()'
     return response
 
+
 @app.route('/')
 def index():
     response = make_response(render_template('index.html'))
@@ -54,6 +55,8 @@ def identify_bird():
         response = jsonify({"error": str(e)}), 500
 
     return add_permissions_policy_headers(response)
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
