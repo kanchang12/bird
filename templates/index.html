@@ -86,45 +86,58 @@
         }
 
         function identifyBird(videoId) {
-            const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/0.jpg?t=${Date.now()}`; // Append timestamp to force reload
-            fetch(`/proxy_thumbnail?url=${encodeURIComponent(thumbnailUrl)}`)
+    log('Starting bird identification...');
+    const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/0.jpg?t=${Date.now()}`;
+    log(`Thumbnail URL: ${thumbnailUrl}`);
+
+    fetch(`/proxy_thumbnail?url=${encodeURIComponent(thumbnailUrl)}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            const reader = new FileReader();
+            reader.onload = function () {
+                const base64data = reader.result;
+                document.getElementById('birdImage').src = base64data;
+
+                log('Sending image to server for identification...');
+                fetch('/identify_bird', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ image_url: base64data })
+                })
                 .then(response => {
+                    log(`Server response status: ${response.status}`);
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                    return response.blob();
+                    return response.json();
                 })
-                .then(blob => {
-                    const reader = new FileReader();
-                    reader.onload = function () {
-                        const base64data = reader.result;
-                        fetch('/identify_bird', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ image_url: base64data })
-                        })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error(`HTTP error! status: ${response.status}`);
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            appendBirdItem(base64data, data.bird_name);
-                        })
-                        .catch(error => {
-                            console.error('Error identifying bird:', error);
-                            appendBirdItem(base64data, 'Error identifying bird');
-                        });
-                    };
-                    reader.readAsDataURL(blob);
+                .then(data => {
+                    log(`Server response data: ${JSON.stringify(data)}`);
+                    if (data.bird_name) {
+                        document.getElementById('result').innerText = "Bird identified: " + data.bird_name;
+                    } else if (data.error) {
+                        document.getElementById('result').innerText = "Error: " + data.error;
+                    }
                 })
                 .catch(error => {
-                    console.error('Error fetching thumbnail:', error);
+                    log(`Error: ${error.message}`);
+                    document.getElementById('result').innerText = "An error occurred: " + error.message;
                 });
-        }
+            };
+            reader.readAsDataURL(blob);
+        })
+        .catch(error => {
+            log(`Error fetching thumbnail: ${error.message}`);
+        });
+}
+
 
         function appendBirdItem(imageBase64, birdName) {
             const birdList = document.getElementById('birdList');
