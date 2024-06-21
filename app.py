@@ -42,7 +42,7 @@ def identify_bird():
         
 
         image = Image.open(io.BytesIO(base64.b64decode(image_data)))
-        )
+        
 
         # Convert PIL Image to OpenCV format
         opencv_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
