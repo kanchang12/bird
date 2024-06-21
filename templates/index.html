@@ -34,46 +34,54 @@
 <body>
     <div id="videoContainer">
         <input type="text" id="videoUrl" placeholder="Enter video URL">
-        <button onclick="loadAndIdentifyBird()">Load Video and Identify Bird</button>
-        <iframe id="videoPlayer" width="420" height="315" src="" frameborder="0" allowfullscreen></iframe>
+        <button onclick="loadVideo()">Load Video</button>
+        <button onclick="identifyBird()">Identify Bird</button>
+        <div id="player"></div>
     </div>
     <div id="birdInfo">
         <h2>Bird Information</h2>
         <p id="result"></p>
         <img id="birdImage" src="" alt="Bird Image">
     </div>
-
+    <script src="https://www.youtube.com/iframe_api"></script>
     <script>
-        let videoElement;
-
-        function loadAndIdentifyBird() {
+        let player;
+        function loadVideo() {
             const videoUrl = document.getElementById('videoUrl').value;
             const videoId = videoUrl.split('v=')[1].split('&')[0];
-            const embedUrl = `https://www.youtube.com/embed/${videoId}`;
-            document.getElementById('videoPlayer').src = embedUrl;
-
-            videoElement = document.createElement('video');
-            videoElement.src = `https://www.youtube.com/watch?v=${videoId}`;
-            videoElement.addEventListener('loadedmetadata', () => {
-                videoElement.play();
-                setTimeout(identifyBird, 5000);  // Wait for 5 seconds to ensure video loads
+            player = new YT.Player('player', {
+                height: '315',
+                width: '420',
+                videoId: videoId,
+                events: {
+                    'onReady': onPlayerReady
+                }
             });
         }
 
-        function identifyBird() {
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            captureFrame(videoElement, canvas, context);
+        function onPlayerReady(event) {
+            console.log("Player is ready");
         }
 
-        function captureFrame(video, canvas, context) {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
+        function identifyBird() {
+            if (!player) {
+                alert("Please load a video first");
+                return;
+            }
+            
+            // Capture the current frame
+            const canvas = document.createElement('canvas');
+            canvas.width = 420;
+            canvas.height = 315;
+            const context = canvas.getContext('2d');
+            
+            // Draw the current video frame to the canvas
+            const playerElement = player.getIframe();
+            context.drawImage(playerElement, 0, 0, canvas.width, canvas.height);
+            
             const imageUrl = canvas.toDataURL('image/jpeg');
             console.log('Captured image URL:', imageUrl);
-
+            
             fetch('/identify_bird', {
                 method: 'POST',
                 headers: {
